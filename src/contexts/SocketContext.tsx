@@ -3,6 +3,7 @@ import { io, Socket } from "socket.io-client";
 import {
   generateSessionKey,
   encryptMessage,
+  signMessage,
   // decryptMessage not used in this file
 } from "../utils/encryption";
 
@@ -11,6 +12,7 @@ interface SocketContextType {
   isConnected: boolean;
   sessionCode: string | null;
   sessionKey: string | null;
+  setSessionKey: (key: string) => void; // Add this for key rotation
   anonymousName: string | null;
   participants: Participant[];
   messages: Message[];
@@ -33,6 +35,7 @@ interface Message {
   senderName: string;
   encryptedContent: string;
   timestamp: number;
+  signature?: string;
   decryptedContent?: string;
 }
 
@@ -62,12 +65,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [anonymousName, setAnonymousName] = useState<string | null>(() => {
     return localStorage.getItem("anonymousName");
   });
+  const [sessionCreatorId, setSessionCreatorId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
     // Initialize socket connection
-    const socketInstance = io("http://localhost:3000");
+    const socketInstance = io("http://localhost:3001");
     setSocket(socketInstance);
 
     socketInstance.on("connect", () => {
@@ -93,6 +97,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       setAnonymousName(data.anonymousName);
       localStorage.setItem("anonymousName", data.anonymousName);
+
+      // Set the session creator ID
+      if (socketInstance.id) {
+        setSessionCreatorId(socketInstance.id);
+      }
 
       // Generate a new session key for encryption
       const newSessionKey = generateSessionKey();
@@ -123,6 +132,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       setAnonymousName(data.anonymousName);
       localStorage.setItem("anonymousName", data.anonymousName);
+
+      // Set the session creator ID if provided
+      if (data.creatorId) {
+        setSessionCreatorId(data.creatorId);
+      }
 
       // Use the session key provided by the server
       if (data.sessionKey) {
@@ -165,6 +179,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           senderName: data.senderName,
           encryptedContent: data.encryptedContent,
           timestamp: data.timestamp,
+          signature: data.signature, // Include the signature
         },
       ]);
     });
@@ -175,6 +190,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setSessionCode(null);
       setSessionKey(null);
       setAnonymousName(null);
+      setSessionCreatorId(null);
       setParticipants([]);
       setMessages([]);
 
@@ -182,6 +198,40 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       localStorage.removeItem("sessionCode");
       localStorage.removeItem("sessionKey");
       localStorage.removeItem("anonymousName");
+    });
+
+    // Handle key rotation needed notification
+    socketInstance.on("key-rotation-needed", (data) => {
+      console.log("Key rotation needed:", data.message);
+      // Request key rotation from the server
+      socketInstance.emit("rotate-key");
+    });
+
+    // Handle generate new key request
+    socketInstance.on("generate-new-key", (data) => {
+      console.log("Generating new session key:", data.message);
+
+      // Generate a new session key
+      const newSessionKey = generateSessionKey();
+      setSessionKey(newSessionKey);
+      localStorage.setItem("sessionKey", newSessionKey);
+
+      // Share the new session key with the server
+      socketInstance.emit("set-session-key", { sessionKey: newSessionKey });
+    });
+
+    // Handle key rotated notification
+    socketInstance.on("key-rotated", (data) => {
+      console.log("Session key rotated:", data.message);
+      // The session creator will have already updated their key
+      // Other participants will receive the new key in this event
+      if (socketInstance.id !== sessionCreatorId) {
+        // Update the session key if provided
+        if (data.sessionKey) {
+          setSessionKey(data.sessionKey);
+          localStorage.setItem("sessionKey", data.sessionKey);
+        }
+      }
     });
 
     // Handle errors
@@ -215,6 +265,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setSessionCode(null);
       setSessionKey(null);
       setAnonymousName(null);
+      setSessionCreatorId(null);
       setParticipants([]);
       setMessages([]);
 
@@ -233,10 +284,20 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   const sendMessage = (message: string) => {
     if (socket && isConnected && sessionCode && sessionKey) {
-      // Use the actual encryption function from our utility
-      const encryptedContent = encryptMessage(message, sessionKey);
-      socket.emit("send-message", { encryptedContent });
-      // We'll receive the message back from the server, so no need to add it locally
+      try {
+        // Use the actual encryption function from our utility
+        const encryptedContent = encryptMessage(message, sessionKey);
+
+        // Sign the message for authenticity
+        const signature = signMessage(message, sessionKey);
+
+        // Send both the encrypted content and the signature
+        socket.emit("send-message", { encryptedContent, signature });
+        // We'll receive the message back from the server, so no need to add it locally
+      } catch (error) {
+        console.error("Failed to encrypt or sign message:", error);
+        // You could add toast notifications here
+      }
     }
   };
 
@@ -247,6 +308,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         isConnected,
         sessionCode,
         sessionKey,
+        setSessionKey, // Add this for key rotation
         anonymousName,
         participants,
         messages,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSocket } from "../contexts/SocketContext";
-import { decryptMessage } from "../utils/encryption";
+import { decryptMessage, verifySignature } from "../utils/encryption";
 
 interface Message {
   id: string;
@@ -9,6 +9,7 @@ interface Message {
   content: string;
   timestamp: number;
   isMe: boolean;
+  verified?: boolean; // Whether the message signature was verified
 }
 
 const ChatRoom: React.FC = () => {
@@ -22,15 +23,56 @@ const ChatRoom: React.FC = () => {
     endSession,
     sendMessage,
     socket,
+    setSessionKey, // Add this to handle key rotation
   } = useSocket();
 
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Get previous keys from the server
+  const [previousKeys, setPreviousKeys] = useState<string[]>([]);
+
+  // Listen for key rotation events
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleKeyRotated = (data: {
+      message: string;
+      sessionKey?: string;
+    }) => {
+      console.log("Key rotation event:", data.message);
+
+      // If we have a current key, add it to previous keys before updating
+      if (sessionKey) {
+        setPreviousKeys((prev) => [sessionKey, ...prev.slice(0, 2)]); // Keep only last 3 keys
+      }
+
+      // Update to the new key if provided
+      if (data.sessionKey) {
+        setSessionKey(data.sessionKey);
+        localStorage.setItem("sessionKey", data.sessionKey);
+      }
+    };
+
+    socket.on("key-rotated", handleKeyRotated);
+
+    return () => {
+      socket.off("key-rotated", handleKeyRotated);
+    };
+  }, [socket, sessionKey, setSessionKey]);
+
   // Process incoming messages from socket context
   useEffect(() => {
-    if (!socketMessages || !socket || !sessionKey) return;
+    if (!socketMessages || !socket || !sessionKey) {
+      console.log("Missing dependencies:", {
+        hasSocketMessages: !!socketMessages,
+        hasSocket: !!socket,
+        hasSessionKey: !!sessionKey,
+        socketMessagesLength: socketMessages?.length || 0,
+      });
+      return;
+    }
 
     console.log("Socket messages updated:", socketMessages);
 
@@ -39,14 +81,72 @@ const ChatRoom: React.FC = () => {
       console.log("Processing message:", msg);
 
       let content;
+      let verified = false;
+      let decryptionSuccessful = false;
+
+      // Try to decrypt with current key first
       try {
-        // Try to decrypt the message
         content = decryptMessage(msg.encryptedContent, sessionKey);
-        console.log("Decrypted content:", content);
+        decryptionSuccessful = true;
+        console.log("Decrypted content with current key:", content);
+
+        // Verify the message signature if available
+        if (msg.signature && content) {
+          try {
+            verified = verifySignature(content, msg.signature, sessionKey);
+            console.log("Signature verification result:", verified);
+          } catch (sigError) {
+            console.error("Signature verification error:", sigError);
+            verified = false;
+          }
+        }
       } catch (error) {
-        console.error("Failed to decrypt message:", error);
-        // If decryption fails, just use the encrypted content
-        content = msg.encryptedContent;
+        console.error(
+          "Failed to decrypt with current key, trying previous keys:",
+          error
+        );
+
+        // If decryption with current key fails, try with previous keys
+        if (previousKeys.length > 0) {
+          for (const prevKey of previousKeys) {
+            try {
+              content = decryptMessage(msg.encryptedContent, prevKey);
+              decryptionSuccessful = true;
+              console.log("Decrypted content with previous key:", content);
+
+              // Verify signature with the same key that successfully decrypted
+              if (msg.signature && content) {
+                try {
+                  verified = verifySignature(content, msg.signature, prevKey);
+                  console.log(
+                    "Signature verification with previous key result:",
+                    verified
+                  );
+                } catch (sigError) {
+                  console.error(
+                    "Signature verification with previous key error:",
+                    sigError
+                  );
+                  verified = false;
+                }
+              }
+
+              // Break the loop if decryption is successful
+              break;
+            } catch (prevKeyError) {
+              console.error(
+                "Failed to decrypt with previous key:",
+                prevKeyError
+              );
+              // Continue to the next previous key
+            }
+          }
+        }
+
+        // If all decryption attempts fail, show an error message
+        if (!decryptionSuccessful) {
+          content = "[Encrypted message - Unable to decrypt]";
+        }
       }
 
       return {
@@ -56,12 +156,13 @@ const ChatRoom: React.FC = () => {
         content: content,
         timestamp: msg.timestamp,
         isMe: msg.sender === socket.id,
+        verified: verified,
       };
     });
 
     console.log("Processed messages:", processedMessages);
     setLocalMessages(processedMessages);
-  }, [socketMessages, socket, sessionKey]);
+  }, [socketMessages, socket, sessionKey, previousKeys]);
 
   // Join window timer has been removed
 
@@ -142,6 +243,7 @@ const ChatRoom: React.FC = () => {
         {/* Chat messages */}
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 shadow-xl">
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {console.log("Rendering messages, count:", localMessages.length)}
             {localMessages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-500 dark:text-gray-400">
@@ -163,8 +265,19 @@ const ChatRoom: React.FC = () => {
                         : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white"
                     }`}
                   >
-                    <div className="text-xs mb-1">
-                      {message.isMe ? "You" : message.senderName}
+                    <div className="text-xs mb-1 flex justify-between">
+                      <span>{message.isMe ? "You" : message.senderName}</span>
+                      {message.verified !== undefined && (
+                        <span
+                          title={
+                            message.verified
+                              ? "Message verified"
+                              : "Message not verified"
+                          }
+                        >
+                          {message.verified ? "✓" : "⚠️"}
+                        </span>
+                      )}
                     </div>
                     <p>{message.content}</p>
                     <div className="text-xs mt-1 text-right opacity-70">
