@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Ephemeral Chat Session</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Clear Ephemeral Chat Session</h1>
+    <p>This utility will clear any stored session data from your browser's localStorage, which should fix the issue of being stuck in a chatroom.</p>
+    
+    <button id="clearButton">Clear Session Data</button>
+    
+    <div id="result" class="result"></div>
+    
+    <script>
+        document.getElementById('clearButton').addEventListener('click', function() {
+            const resultDiv = document.getElementById('result');
+            
+            // Check if there's any session data
+            const sessionCode = localStorage.getItem('sessionCode');
+            const sessionKey = localStorage.getItem('sessionKey');
+            const anonymousName = localStorage.getItem('anonymousName');
+            
+            if (sessionCode || sessionKey || anonymousName) {
+                // Clear the session data
+                localStorage.removeItem('sessionCode');
+                localStorage.removeItem('sessionKey');
+                localStorage.removeItem('anonymousName');
+                
+                resultDiv.innerHTML = '<p>Session data cleared successfully!</p>' +
+                    '<p>The following items were removed:</p>' +
+                    '<ul>' +
+                    (sessionCode ? '<li>Session Code: ' + sessionCode + '</li>' : '') +
+                    (sessionKey ? '<li>Session Key: [encrypted]</li>' : '') +
+                    (anonymousName ? '<li>Anonymous Name: ' + anonymousName + '</li>' : '') +
+                    '</ul>' +
+                    '<p>Please refresh your Ephemeral Chat application now.</p>';
+            } else {
+                resultDiv.innerHTML = '<p>No session data found in localStorage.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
