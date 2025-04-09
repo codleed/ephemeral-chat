@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield background -->
+  <path d="M256 472.3c-8.5 0-16.6-2.2-23.7-6.4C127.3 407.5 76.8 336.4 76.8 239.7V95.1c0-11.3 9.1-20.4 20.4-20.4h317.6c11.3 0 20.4 9.1 20.4 20.4v144.6c0 96.7-50.5 167.8-155.5 226.2-7.1 4.2-15.2 6.4-23.7 6.4z" fill="#4285F4"/>
+
+  <!-- Shield inner gradient -->
+  <path d="M256 452.3c-7.5 0-14.6-1.9-20.9-5.6C142.3 394.5 96.8 330.4 96.8 239.7V115.1c0-5.5 4.5-10 10-10h298.4c5.5 0 10 4.5 10 10v124.6c0 90.7-45.5 154.8-138.3 207-6.3 3.7-13.4 5.6-20.9 5.6z" fill="#5C9EFF"/>
+
+  <!-- Lock body -->
+  <rect x="176" y="216" width="160" height="140" rx="20" fill="#FFC107"/>
+
+  <!-- Lock shackle -->
+  <path d="M196 216v-40c0-33.1 26.9-60 60-60s60 26.9 60 60v40" stroke="#FFC107" stroke-width="30" stroke-linecap="round"/>
+
+  <!-- Keyhole -->
+  <circle cx="256" cy="276" r="20" fill="#FFFFFF"/>
+  <rect x="246" y="276" width="20" height="40" rx="5" fill="#FFFFFF"/>
+
+  <!-- Binary data symbols (representing encryption) -->
+  <path d="M190 190 L210 190 L210 200 L190 200 Z" fill="#FFFFFF"/>
+  <path d="M220 190 L240 190 L240 200 L220 200 Z" fill="#FFFFFF"/>
+
+  <path d="M290 190 L310 190 L310 200 L290 200 Z" fill="#FFFFFF"/>
+  <path d="M320 190 L340 190 L340 200 L320 200 Z" fill="#FFFFFF"/>
+
+  <path d="M190 380 L210 380 L210 390 L190 390 Z" fill="#FFFFFF"/>
+  <path d="M220 380 L240 380 L240 390 L220 390 Z" fill="#FFFFFF"/>
+
+  <path d="M290 380 L310 380 L310 390 L290 390 Z" fill="#FFFFFF"/>
+  <path d="M320 380 L340 380 L340 390 L320 390 Z" fill="#FFFFFF"/>
+</svg>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#F0F9FF"/>
+  
+  <!-- Shield background -->
+  <path d="M256 432c-7.5 0-14.6-1.9-20.9-5.6C142.3 374.5 96.8 310.4 96.8 219.7V95.1c0-5.5 4.5-10 10-10h298.4c5.5 0 10 4.5 10 10v124.6c0 90.7-45.5 154.8-138.3 207-6.3 3.7-13.4 5.6-20.9 5.6z" fill="#4285F4"/>
+  
+  <!-- Shield inner gradient -->
+  <path d="M256 412c-6.5 0-12.6-1.6-18.1-4.8C153.3 361.5 116.8 307.4 116.8 229.7V115.1c0-4.4 3.6-8 8-8h262.4c4.4 0 8 3.6 8 8v114.6c0 77.7-36.5 131.8-121.1 177.5-5.5 3.2-11.6 4.8-18.1 4.8z" fill="#5C9EFF"/>
+  
+  <!-- Lock body -->
+  <rect x="186" y="216" width="140" height="120" rx="16" fill="#FFC107"/>
+  
+  <!-- Lock shackle -->
+  <path d="M206 216v-30c0-27.6 22.4-50 50-50s50 22.4 50 50v30" stroke="#FFC107" stroke-width="24" stroke-linecap="round"/>
+  
+  <!-- Keyhole -->
+  <circle cx="256" cy="266" r="16" fill="#FFFFFF"/>
+  <rect x="248" y="266" width="16" height="30" rx="4" fill="#FFFFFF"/>
+  
+  <!-- Binary data symbols (representing encryption) -->
+  <g fill="#FFFFFF" font-family="Courier New, monospace" font-size="12" font-weight="bold">
+    <text x="156" y="156">01001</text>
+    <text x="156" y="176">10110</text>
+    <text x="156" y="196">01101</text>
+    
+    <text x="326" y="156">10110</text>
+    <text x="326" y="176">01001</text>
+    <text x="326" y="196">10010</text>
+    
+    <text x="156" y="356">10010</text>
+    <text x="156" y="376">01101</text>
+    <text x="156" y="396">10110</text>
+    
+    <text x="326" y="356">01101</text>
+    <text x="326" y="376">10010</text>
+    <text x="326" y="396">01001</text>
+  </g>
+  
+  <!-- Encryption lines -->
+  <g stroke="#FFFFFF" stroke-width="1.5" stroke-dasharray="4,4">
+    <path d="M136 136 L186 186"/>
+    <path d="M376 136 L326 186"/>
+    <path d="M136 376 L186 326"/>
+    <path d="M376 376 L326 326"/>
+  </g>
+</svg>
